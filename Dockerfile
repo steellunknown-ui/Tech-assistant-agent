@@ -31,9 +31,10 @@ WORKDIR /app/agent
 # Switch to non-root user
 USER user
 
-# Expose port 7860 for Hugging Face Spaces healthcheck & metrics
-EXPOSE 7860
-ENV PORT=7860
+# Expose port 10000 for Render / cloud healthcheck & metrics
+EXPOSE 10000
+ENV PORT=10000
 
 # Run worker in production mode
 CMD ["python", "main.py", "start"]
+
