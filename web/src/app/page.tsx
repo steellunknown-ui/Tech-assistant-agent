@@ -69,11 +69,23 @@ export default function VoiceAgentPage() {
           if (track.kind === Track.Kind.Audio) {
             const el = track.attach();
             el.id = `remote-audio-${track.sid}`;
+            el.autoplay = true;
             document.body.appendChild(el);
             audioElementsRef.current.push(el);
+            el.play().catch(() => {
+              // Browser autoplay blocked, try unlocking via LiveKit
+              room.startAudio().catch(() => {});
+            });
           }
         }
       );
+
+      // Listen for mobile audio playback permission status
+      room.on(RoomEvent.AudioPlaybackStatusChanged, () => {
+        if (!room.canPlaybackAudio) {
+          room.startAudio().catch(() => {});
+        }
+      });
 
       // Handle track removal
       room.on(RoomEvent.TrackUnsubscribed, (track: RemoteTrack) => {
@@ -127,6 +139,13 @@ export default function VoiceAgentPage() {
 
       // 3. Connect to room
       await room.connect(url, token);
+
+      // Unlock mobile audio explicitly right inside user click gesture
+      try {
+        await room.startAudio();
+      } catch (audioErr) {
+        console.warn("Mobile audio autoplay blocked on connect:", audioErr);
+      }
 
       // 4. Enable local microphone
       await room.localParticipant.setMicrophoneEnabled(true);

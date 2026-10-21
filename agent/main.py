@@ -66,8 +66,8 @@ async def entrypoint(ctx: JobContext):
     logger.info(f"Active TTS provider initialized: {getattr(tts_provider, 'model', tts_provider)}")
 
     # Configurable turn handling options for benchmarking
-    min_endpointing_delay = float(os.getenv("MIN_ENDPOINTING_DELAY", "0.5"))
-    max_endpointing_delay = float(os.getenv("MAX_ENDPOINTING_DELAY", "3.0"))
+    min_endpointing_delay = float(os.getenv("MIN_ENDPOINTING_DELAY", "0.7"))
+    max_endpointing_delay = float(os.getenv("MAX_ENDPOINTING_DELAY", "2.5"))
     preemptive = os.getenv("PREEMPTIVE_GENERATION", "false").lower() == "true"
     preemptive_tts = os.getenv("PREEMPTIVE_TTS", "false").lower() == "true"
     interruption_mode = os.getenv("INTERRUPTION_MODE", "adaptive").lower()
@@ -84,6 +84,9 @@ async def entrypoint(ctx: JobContext):
         "interruption": {
             "enabled": True,
             "mode": interruption_mode,
+            "min_duration": 0.5,
+            "min_words": 2,
+            "resume_false_interruption": True,
         },
     }
 
