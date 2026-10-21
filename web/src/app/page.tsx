@@ -184,11 +184,11 @@ export default function VoiceAgentPage() {
       <header className="app-header">
         <div className="badge-phase">
           <span className="badge-dot" />
-          Phase 1: Real-Time Core
+          AI Voice Support
         </div>
         <h1 className="app-title">Technical Support Voice Agent</h1>
         <p className="app-subtitle">
-          Real-time voice assistant with Deepgram STT, Groq LLM, and Cartesia AI (Cloned Male Voice).
+          Real-time intelligent voice assistant for instant technical troubleshooting.
         </p>
       </header>
 
@@ -289,22 +289,6 @@ export default function VoiceAgentPage() {
               </svg>
             )}
           </button>
-        </div>
-
-        {/* Pipeline Specifications */}
-        <div className="stack-specs">
-          <div className="spec-item">
-            <span className="spec-label">STT</span>
-            <span className="spec-val">Deepgram Nova-3</span>
-          </div>
-          <div className="spec-item">
-            <span className="spec-label">LLM</span>
-            <span className="spec-val">Gemini + Groq</span>
-          </div>
-          <div className="spec-item">
-            <span className="spec-label">TTS</span>
-            <span className="spec-val">Cartesia Sonic-3 (Cloned)</span>
-          </div>
         </div>
       </section>
     </main>
