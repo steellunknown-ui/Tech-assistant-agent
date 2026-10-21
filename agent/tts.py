@@ -27,26 +27,49 @@ def get_tts() -> tts.TTS:
         api_key=dg_key if dg_key else None,
     )
 
-    # Priority 1: Cartesia AI (fastest ~100ms TTFB, cloned male voice)
+    tts_chain = []
+
+    # Tier 1: Cartesia Account 1 (Primary Cloned Voice)
     if cartesia_key:
         voice_id = os.getenv("CARTESIA_VOICE_ID", "b4a7492e-52bc-4626-b097-876593589fbd")
         model = os.getenv("CARTESIA_MODEL", "sonic-3")
-        logger.info(f"Using Cartesia TTS (Model: {model}, Voice: {voice_id}) with Deepgram Orion male fallback")
-        cartesia_tts = cartesia.TTS(
-            api_key=cartesia_key,
-            model=model,
-            voice=voice_id,
-        )
-        adapter = tts.FallbackAdapter(
-            tts=[cartesia_tts, fallback_dg],
-            max_retry_per_tts=1,
+        logger.info(f"Tier 1: Cartesia Account 1 (Model: {model}, Voice: {voice_id})")
+        tts_chain.append(
+            cartesia.TTS(
+                api_key=cartesia_key,
+                model=model,
+                voice=voice_id,
+            )
         )
 
-        @adapter.on("tts_availability_changed")
-        def _on_tts_avail(ev):
-            logger.warning(f"[TTS FallbackAdapter] Availability changed: {ev}")
+    # Tier 2: Cartesia Account 2 (Secondary Cloned Voice Fallback)
+    cartesia_key_2 = os.getenv("CARTESIA_API_KEY_2")
+    if cartesia_key_2:
+        voice_id_2 = os.getenv("CARTESIA_VOICE_ID_2", "df52583d-c843-489f-a413-79bf17ceb806")
+        model = os.getenv("CARTESIA_MODEL", "sonic-3")
+        logger.info(f"Tier 2: Cartesia Account 2 (Model: {model}, Voice: {voice_id_2})")
+        tts_chain.append(
+            cartesia.TTS(
+                api_key=cartesia_key_2,
+                model=model,
+                voice=voice_id_2,
+            )
+        )
 
-        return adapter
+    # Tier 3: Deepgram Orion Male Voice (Final Resilience Safety Net)
+    tts_chain.append(fallback_dg)
+
+    logger.info(f"Configured 3-Tier Chained TTS: {[t.label for t in tts_chain]}")
+    adapter = tts.FallbackAdapter(
+        tts=tts_chain,
+        max_retry_per_tts=1,
+    )
+
+    @adapter.on("tts_availability_changed")
+    def _on_tts_avail(ev):
+        logger.warning(f"[TTS FallbackAdapter] Failover event: {ev}")
+
+    return adapter
 
     # Priority 2: Direct Fish Audio if configured
     if fish_key:
