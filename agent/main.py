@@ -29,6 +29,7 @@ from livekit.agents import (
     AgentSession,
     AutoSubscribe,
     JobContext,
+    JobExecutorType,
     WorkerOptions,
     cli,
 )
@@ -185,8 +186,9 @@ if __name__ == "__main__":
             entrypoint_fnc=entrypoint,
             port=int(os.getenv("PORT", "10000")),
             host="0.0.0.0",
-            num_idle_processes=int(os.getenv("NUM_IDLE_PROCESSES", "0")),
-            load_threshold=float(os.getenv("LOAD_THRESHOLD", "0.95")),
+            job_executor_type=JobExecutorType.THREAD,
+            num_idle_processes=0,
+            load_threshold=float("inf"),
             initialize_process_timeout=30.0,
         )
     )
