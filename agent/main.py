@@ -9,6 +9,7 @@ Minimal voice agent built with LiveKit Agents v1.8.8.
 
 import os
 import sys
+import asyncio
 import logging
 from pathlib import Path
 from dotenv import load_dotenv
@@ -29,6 +30,7 @@ from livekit.agents import (
     AgentSession,
     AutoSubscribe,
     JobContext,
+    JobProcess,
     JobExecutorType,
     WorkerOptions,
     cli,
@@ -54,6 +56,15 @@ CRITICAL VOICE INSTRUCTIONS:
 """
 
 
+def prewarm(proc: JobProcess):
+    """Prewarm heavy models during worker startup so calls are instant."""
+    try:
+        proc.userdata["vad"] = silero.VAD.load()
+        logger.info("Silero VAD preloaded in worker memory")
+    except Exception as e:
+        logger.warning(f"Failed to prewarm Silero VAD: {e}")
+
+
 async def entrypoint(ctx: JobContext):
     """Entrypoint executed when an agent worker takes a room job."""
     logger.info(f"Connecting to LiveKit room: {ctx.room.name}")
@@ -63,7 +74,9 @@ async def entrypoint(ctx: JobContext):
     stt_provider = get_stt()
     llm_provider = get_llm()
     tts_provider = get_tts()
-    vad_provider = silero.VAD.load()
+    vad_provider = ctx.proc.userdata.get("vad") if hasattr(ctx, "proc") and ctx.proc else None
+    if vad_provider is None:
+        vad_provider = silero.VAD.load()
     logger.info(f"Active TTS provider initialized: {getattr(tts_provider, 'model', tts_provider)}")
 
     # Configurable turn handling options for benchmarking
@@ -173,17 +186,26 @@ async def entrypoint(ctx: JobContext):
                     flush=True,
                 )
 
+    # Wait for the user participant to join room before starting session
+    logger.info("Waiting for user participant to join room...")
+    participant = await ctx.wait_for_participant()
+    logger.info(f"User joined: {participant.identity} ({participant.name or 'User'})")
+
     # Start session within the connected room
     await session.start(support_agent, room=ctx.room)
 
+    # Allow client WebRTC track subscription & audio element attachment
+    await asyncio.sleep(0.5)
+
     # Generate an instant initial spoken greeting via TTS directly
-    await session.say("Hello, welcome to technical support! How can I help you today?")
+    await session.say("Hello, welcome to technical support! How can I help you today?", allow_interruptions=True)
 
 
 if __name__ == "__main__":
     cli.run_app(
         WorkerOptions(
             entrypoint_fnc=entrypoint,
+            prewarm_fnc=prewarm,
             port=int(os.getenv("PORT", "10000")),
             host="0.0.0.0",
             job_executor_type=JobExecutorType.THREAD,

@@ -70,10 +70,12 @@ export default function VoiceAgentPage() {
             const el = track.attach();
             el.id = `remote-audio-${track.sid}`;
             el.autoplay = true;
+            el.volume = 1.0;
+            el.muted = false;
             document.body.appendChild(el);
             audioElementsRef.current.push(el);
-            el.play().catch(() => {
-              // Browser autoplay blocked, try unlocking via LiveKit
+            el.play().catch((err) => {
+              console.warn("Autoplay blocked, calling room.startAudio():", err);
               room.startAudio().catch(() => {});
             });
           }
